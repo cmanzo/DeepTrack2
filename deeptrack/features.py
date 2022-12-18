@@ -271,6 +271,8 @@ class Feature(DeepTrackNode):
 
     def add_feature(self, feature):
         """Adds a feature to the dependecy graph."""
+        if not isinstance(feature, Feature) and isinstance(feature, DeepTrackNode):
+            feature = Value(feature)
         feature.add_child(self)
         self.add_dependency(feature)
         return feature
@@ -1093,10 +1095,15 @@ class Bind(StructuralFeature):
     def __init__(self, feature: Feature, **kwargs):
 
         super().__init__(**kwargs)
+        if not isinstance(feature, Feature):
+            if isinstance(feature, DeepTrackNode):
+                feature = Value(feature)
+            else:
+                raise TypeError("feature must be a Feature or DeepTrackNode")
         self.feature = self.add_feature(feature)
 
     def get(self, image, **kwargs):
-        return self.feature.resolve(image, **kwargs)
+        return self.feature(image, **kwargs)
 
 
 BindResolve = Bind
@@ -1134,6 +1141,51 @@ class BindUpdate(StructuralFeature):
     def get(self, image, **kwargs):
         return self.feature.resolve(image, **kwargs)
 
+class Select(StructuralFeature):
+    """Selects a feature based on the mode (train, test, val).
+    
+    Parameters
+    ----------
+    on_train : Feature
+        Feature to use on train mode.
+    on_val : Feature
+        Feature to use on val mode.
+    on_test : Feature
+        Feature to use on test mode.
+    default : Feature
+        Feature to use if the mode is not specified.
+        (on_test is used if default is not specified)
+    """
+
+    def __init__(
+        self,
+        on_train: Feature,
+        on_val: Feature,
+        on_test: Feature,
+        default: Feature = None,
+        **kwargs
+    ):
+        kwargs.update(
+            train=False,
+            val=False,
+            test=False,
+        )
+        super().__init__(**kwargs)
+
+        self.on_train = self.add_feature(on_train)
+        self.on_val = self.add_feature(on_val)
+        self.on_test = self.add_feature(on_test)
+        self.default = self.add_feature(default or on_test)
+
+    def get(self, image, train, val, test, **kwargs):
+        if train:
+            return self.on_train(image, **kwargs)
+        elif val:
+            return self.on_val(image, **kwargs)
+        elif test:
+            return self.on_test(image, **kwargs)
+        else:
+            return self.default(image, **kwargs)
 
 class ConditionalSetProperty(StructuralFeature):
     """Conditionally overrides the properties of child features.
