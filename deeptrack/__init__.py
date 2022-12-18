@@ -42,4 +42,6 @@ from . import (
     test,
     visualization,
     datasets,
+    tfmodels,
+    torchmodels
 )
