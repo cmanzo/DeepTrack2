@@ -855,8 +855,9 @@ class MieScatterer(FieldScatterer):
 
     output_polarization : float | Quantity
         Angle of a polarization analyzer placed after the sample, in radians.
-        If a float (or `Quantity`), the detected field is projected onto the
-        corresponding linear polarization direction.
+        If None, the output light is not polarized. If a float (or `Quantity`), 
+        the detected field is projected onto the corresponding linear 
+        polarization direction.
 
     L : int | str
         Number of terms used to evaluate the Mie series. If `"auto"`,
@@ -926,7 +927,7 @@ class MieScatterer(FieldScatterer):
         self,
         coefficients,
         input_polarization: float=0,
-        output_polarization: float=0,
+        output_polarization: float | None=0,
         offset_z: str="auto",
         collection_angle: str = "auto",
         L: str = "auto",
@@ -1165,33 +1166,24 @@ class MieScatterer(FieldScatterer):
         output_polarization,
     ):
 
-        if isinstance(input_polarization, Quantity):
-            input_polarization = input_polarization.to("rad").magnitude
+        if isinstance(input_polarization, (float, int, str, Quantity)):
+            if isinstance(input_polarization, Quantity):
+                input_polarization = input_polarization.to("rad").magnitude
 
-        if isinstance(output_polarization, Quantity):
-            output_polarization = output_polarization.to("rad").magnitude
+            if isinstance(input_polarization, (float, int)):
+                S1_coef = np.sin(phi + input_polarization)
+                S2_coef = np.cos(phi + input_polarization)
 
-        if input_polarization is None:
-            raise ValueError(
-                "Unpolarized illumination must be handled outside MieScatterer."
-            )
+            elif isinstance(input_polarization, str) and input_polarization == "circular":
+                S1_coef = 1 / np.sqrt(2)
+                S2_coef = 1j / np.sqrt(2)
+            else:
+                raise TypeError(f"Unsupported input_polarization: {input_polarization}")
 
-        # INPUT POLARIZATION
-        if isinstance(input_polarization, (float, int, np.floating)):
-            S1_coef = np.sin(phi + input_polarization)
-            S2_coef = np.cos(phi + input_polarization)
+        if isinstance(output_polarization, (float, int, Quantity)):
+            if isinstance(output_polarization, Quantity):
+                output_polarization = output_polarization.to("rad").magnitude
 
-        elif input_polarization == "circular":
-            S1_coef = 1 / np.sqrt(2)
-            S2_coef = 1j / np.sqrt(2)
-
-        else:
-            raise TypeError(
-                f"Unsupported input_polarization type: {type(input_polarization)}"
-            )
-
-        # ANALYZER
-        if isinstance(output_polarization, (float, int, np.floating)):
             S1_coef *= np.sin(phi + output_polarization)
             S2_coef *= np.cos(phi + output_polarization) * illumination_cos_theta
 
@@ -1698,3 +1690,62 @@ class ScatteredVolume(Wrapper):
 class ScatteredField(Wrapper):
     """Complex field produced by a FieldScatterer."""
     pass
+
+
+class Unpolarized(Feature):
+    """Feature that simulates unpolarized illumination and/or detection.
+
+    It wraps a coherent pipeline and averages intensities from orthogonal
+    polarization states.
+    """
+
+    def __init__(
+        self,
+        feature,
+        input_unpolarized=True,
+        output_unpolarized=False,
+    ):
+        super().__init__()
+        self.feature = feature
+        self.input_unpolarized = input_unpolarized
+        self.output_unpolarized = output_unpolarized
+
+    def _input_states(self, base_input_pol):
+        if not self.input_unpolarized:
+            return [base_input_pol]
+        return [0.0, np.pi / 2]
+
+    def _output_states(self, base_output_pol):
+        if not self.output_unpolarized:
+            return [base_output_pol]
+        return [0.0, np.pi / 2]
+
+    def get(self, image=None, **kwargs):
+
+        base_input = kwargs.get("input_polarization", 0.0)
+        base_output = kwargs.get("output_polarization", None)
+
+        input_states = self._input_states(base_input)
+        output_states = self._output_states(base_output)
+
+        intensity = None
+        count = 0
+
+        for pin in input_states:
+            for pout in output_states:
+
+                result = self.feature.update(
+                    input_polarization=pin,
+                    output_polarization=pout,
+                ).resolve()
+
+                I = np.abs(result) ** 2
+
+                if intensity is None:
+                    intensity = I
+                else:
+                    intensity += I
+
+                count += 1
+
+        return intensity / count
