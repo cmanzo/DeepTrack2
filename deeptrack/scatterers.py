@@ -1188,6 +1188,7 @@ class MieScatterer(FieldScatterer):
             S2_coef *= np.cos(phi + output_polarization) * illumination_cos_theta
 
         return S1_coef, S2_coef
+     
     
     def _mie_scattering(
         self,
@@ -1199,6 +1200,7 @@ class MieScatterer(FieldScatterer):
         PI, TAU = mie.harmonics(illumination_cos_theta, L)
 
         E = [(2 * i + 1) / (i * (i + 1)) for i in range(1, L + 1)]
+
 
         S1 = sum(E[i] * A[i] * PI[i] + E[i] * B[i] * TAU[i] for i in range(L))
         S2 = sum(E[i] * B[i] * PI[i] + E[i] * A[i] * TAU[i] for i in range(L))
