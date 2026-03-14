@@ -193,6 +193,7 @@ __all__ = [
     "MieScatterer",
     "MieSphere",
     "MieStratifiedSphere",
+    "Unpolarized",
 ]
 
 
@@ -1188,7 +1189,6 @@ class MieScatterer(FieldScatterer):
             S2_coef *= np.cos(phi + output_polarization) * illumination_cos_theta
 
         return S1_coef, S2_coef
-     
     
     def _mie_scattering(
         self,
@@ -1200,7 +1200,6 @@ class MieScatterer(FieldScatterer):
         PI, TAU = mie.harmonics(illumination_cos_theta, L)
 
         E = [(2 * i + 1) / (i * (i + 1)) for i in range(1, L + 1)]
-
 
         S1 = sum(E[i] * A[i] * PI[i] + E[i] * B[i] * TAU[i] for i in range(L))
         S2 = sum(E[i] * B[i] * PI[i] + E[i] * A[i] * TAU[i] for i in range(L))
@@ -1694,57 +1693,72 @@ class ScatteredField(Wrapper):
     pass
 
 
-class Unpolarized(Feature):
-    """Feature that simulates unpolarized illumination and/or detection.
+from deeptrack.features import StructuralFeature
 
-    It wraps a coherent pipeline and averages intensities from orthogonal
-    polarization states.
+class Unpolarized(StructuralFeature):
+    """Average intensities over orthogonal input/output polarization states.
+
+    This is a meta-feature: it re-evaluates a child feature for several
+    polarization configurations and averages the resulting intensities.
     """
+
+    __distributed__ = False
 
     def __init__(
         self,
         feature,
         input_unpolarized=True,
         output_unpolarized=False,
+        **kwargs,
     ):
-        super().__init__()
-        self.feature = feature
-        self.input_unpolarized = input_unpolarized
-        self.output_unpolarized = output_unpolarized
+        super().__init__(
+            input_unpolarized=input_unpolarized,
+            output_unpolarized=output_unpolarized,
+            **kwargs,
+        )
+        self.feature = self.add_feature(feature)
 
-    def _input_states(self, base_input_pol):
-        if not self.input_unpolarized:
-            return [base_input_pol]
-        return [0.0, np.pi / 2]
+    @staticmethod
+    def _input_states(base_input_pol, input_unpolarized):
+        if input_unpolarized:
+            return [0.0, np.pi / 2]
+        return [0.0 if base_input_pol is None else base_input_pol]
 
-    def _output_states(self, base_output_pol):
-        if not self.output_unpolarized:
-            return [base_output_pol]
-        return [0.0, np.pi / 2]
+    @staticmethod
+    def _output_states(base_output_pol, output_unpolarized):
+        if output_unpolarized:
+            return [0.0, np.pi / 2]
+        return [base_output_pol]
 
-    def get(self, image=None, **kwargs):
+    def get(self, inputs, input_unpolarized, output_unpolarized, _ID=(), **kwargs):
+
+        # identity case
+        if not input_unpolarized and not output_unpolarized:
+            return self.feature(_ID=_ID, **kwargs)
 
         base_input = kwargs.get("input_polarization", 0.0)
         base_output = kwargs.get("output_polarization", None)
 
-        input_states = self._input_states(base_input)
-        output_states = self._output_states(base_output)
-
+        input_states = [0.0, np.pi/2] if input_unpolarized else [base_input]
+        output_states = [0.0, np.pi/2] if output_unpolarized else [base_output]
+        print(base_input, input_states)
+        print(base_output, output_states)
         intensity = None
         count = 0
 
         for pin in input_states:
             for pout in output_states:
 
-                result = self.feature.update(
+                result = self.feature(
+                    _ID=_ID,
                     input_polarization=pin,
                     output_polarization=pout,
-                ).resolve()
+                )
 
-                I = np.abs(result) ** 2
+                I = np.abs(result)**2
 
                 if intensity is None:
-                    intensity = I
+                    intensity = np.array(I, copy=True)
                 else:
                     intensity += I
 
