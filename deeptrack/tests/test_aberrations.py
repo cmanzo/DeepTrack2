@@ -3,7 +3,7 @@ import sys
 # sys.path.append(".")  # Adds the module to path
 
 import unittest
-raise unittest.SkipTest("Temporarily skipped")
+# raise unittest.SkipTest("Temporarily skipped")
 
 import numpy as np
 
@@ -11,11 +11,12 @@ from deeptrack import aberrations
 
 from deeptrack.scatterers import PointParticle
 from deeptrack.optics import Fluorescence
-from deeptrack.image import Image
 
+from deeptrack.backend import TORCH_AVAILABLE, xp
+from deeptrack.tests import BackendTestBase
 
-
-class TestAberrations(unittest.TestCase):
+class TestAberrations_NumPy(BackendTestBase):
+    BACKEND = "numpy"
 
     particle = PointParticle(position=(32, 32), position_unit="pixel", intensity=1)
 
@@ -36,11 +37,11 @@ class TestAberrations(unittest.TestCase):
             self.assertIsInstance(im, np.ndarray)
             self.assertEqual(im.shape, (64, 48, 1))
         
-        aberrated_particle.store_properties(True)
-        for z in (-100, 0, 100):
-            im = aberrated_particle.resolve(z=z)
-            self.assertIsInstance(im, Image)
-            self.assertEqual(im.shape, (64, 48, 1))
+        # aberrated_particle.store_properties(True)
+        # for z in (-100, 0, 100):
+        #     im = aberrated_particle.resolve(z=z)
+        #     self.assertIsInstance(im, Image)
+        #     self.assertEqual(im.shape, (64, 48, 1))
 
     def testZernike(self):
         aberrated_optics = Fluorescence(
@@ -60,11 +61,11 @@ class TestAberrations(unittest.TestCase):
             self.assertIsInstance(im, np.ndarray)
             self.assertEqual(im.shape, (64, 48, 1))
 
-        aberrated_particle.store_properties(True)
-        for z in (-100, 0, 100):
-            im = aberrated_particle.resolve(z=z)
-            self.assertIsInstance(im, Image)
-            self.assertEqual(im.shape, (64, 48, 1))
+        # aberrated_particle.store_properties(True)
+        # for z in (-100, 0, 100):
+        #     im = aberrated_particle.resolve(z=z)
+        #     self.assertIsInstance(im, Image)
+        #     self.assertEqual(im.shape, (64, 48, 1))
 
     def testPiston(self):
         aberrated_optics = Fluorescence(
@@ -82,11 +83,11 @@ class TestAberrations(unittest.TestCase):
             self.assertIsInstance(im, np.ndarray)
             self.assertEqual(im.shape, (64, 48, 1))
 
-        aberrated_particle.store_properties(True)
-        for z in (-100, 0, 100):
-            im = aberrated_particle.resolve(z=z)
-            self.assertIsInstance(im, Image)
-            self.assertEqual(im.shape, (64, 48, 1))
+        # aberrated_particle.store_properties(True)
+        # for z in (-100, 0, 100):
+        #     im = aberrated_particle.resolve(z=z)
+        #     self.assertIsInstance(im, Image)
+        #     self.assertEqual(im.shape, (64, 48, 1))
 
     def testVerticalTilt(self):
         aberrated_optics = Fluorescence(
@@ -104,11 +105,11 @@ class TestAberrations(unittest.TestCase):
             self.assertIsInstance(im, np.ndarray)
             self.assertEqual(im.shape, (64, 48, 1))
 
-        aberrated_particle.store_properties(True)
-        for z in (-100, 0, 100):
-            im = aberrated_particle.resolve(z=z)
-            self.assertIsInstance(im, Image)
-            self.assertEqual(im.shape, (64, 48, 1))
+        # aberrated_particle.store_properties(True)
+        # for z in (-100, 0, 100):
+        #     im = aberrated_particle.resolve(z=z)
+        #     self.assertIsInstance(im, Image)
+        #     self.assertEqual(im.shape, (64, 48, 1))
 
     def testHorizontalTilt(self):
         aberrated_optics = Fluorescence(
@@ -126,11 +127,11 @@ class TestAberrations(unittest.TestCase):
             self.assertIsInstance(im, np.ndarray)
             self.assertEqual(im.shape, (64, 48, 1))
 
-        aberrated_particle.store_properties(True)
-        for z in (-100, 0, 100):
-            im = aberrated_particle.resolve(z=z)
-            self.assertIsInstance(im, Image)
-            self.assertEqual(im.shape, (64, 48, 1))
+        # aberrated_particle.store_properties(True)
+        # for z in (-100, 0, 100):
+        #     im = aberrated_particle.resolve(z=z)
+        #     self.assertIsInstance(im, Image)
+        #     self.assertEqual(im.shape, (64, 48, 1))
 
     def testObliqueAstigmatism(self):
         aberrated_optics = Fluorescence(
@@ -148,11 +149,11 @@ class TestAberrations(unittest.TestCase):
             self.assertIsInstance(im, np.ndarray)
             self.assertEqual(im.shape, (64, 48, 1))
 
-        aberrated_particle.store_properties(True)
-        for z in (-100, 0, 100):
-            im = aberrated_particle.resolve(z=z)
-            self.assertIsInstance(im, Image)
-            self.assertEqual(im.shape, (64, 48, 1))
+        # aberrated_particle.store_properties(True)
+        # for z in (-100, 0, 100):
+        #     im = aberrated_particle.resolve(z=z)
+        #     self.assertIsInstance(im, Image)
+        #     self.assertEqual(im.shape, (64, 48, 1))
 
     def testDefocus(self):
         aberrated_optics = Fluorescence(
@@ -170,11 +171,11 @@ class TestAberrations(unittest.TestCase):
             self.assertIsInstance(im, np.ndarray)
             self.assertEqual(im.shape, (64, 48, 1))
 
-        aberrated_particle.store_properties(True)
-        for z in (-100, 0, 100):
-            im = aberrated_particle.resolve(z=z)
-            self.assertIsInstance(im, Image)
-            self.assertEqual(im.shape, (64, 48, 1))
+        # aberrated_particle.store_properties(True)
+        # for z in (-100, 0, 100):
+        #     im = aberrated_particle.resolve(z=z)
+        #     self.assertIsInstance(im, Image)
+        #     self.assertEqual(im.shape, (64, 48, 1))
 
     def testAstigmatism(self):
         aberrated_optics = Fluorescence(
@@ -192,11 +193,11 @@ class TestAberrations(unittest.TestCase):
             self.assertIsInstance(im, np.ndarray)
             self.assertEqual(im.shape, (64, 48, 1))
 
-        aberrated_particle.store_properties(True)
-        for z in (-100, 0, 100):
-            im = aberrated_particle.resolve(z=z)
-            self.assertIsInstance(im, Image)
-            self.assertEqual(im.shape, (64, 48, 1))
+        # aberrated_particle.store_properties(True)
+        # for z in (-100, 0, 100):
+        #     im = aberrated_particle.resolve(z=z)
+        #     self.assertIsInstance(im, Image)
+        #     self.assertEqual(im.shape, (64, 48, 1))
 
     def testObliqueTrefoil(self):
         aberrated_optics = Fluorescence(
@@ -214,11 +215,11 @@ class TestAberrations(unittest.TestCase):
             self.assertIsInstance(im, np.ndarray)
             self.assertEqual(im.shape, (64, 48, 1))
 
-        aberrated_particle.store_properties(True)
-        for z in (-100, 0, 100):
-            im = aberrated_particle.resolve(z=z)
-            self.assertIsInstance(im, Image)
-            self.assertEqual(im.shape, (64, 48, 1))
+        # aberrated_particle.store_properties(True)
+        # for z in (-100, 0, 100):
+        #     im = aberrated_particle.resolve(z=z)
+        #     self.assertIsInstance(im, Image)
+        #     self.assertEqual(im.shape, (64, 48, 1))
 
     def testVerticalComa(self):
         aberrated_optics = Fluorescence(
@@ -236,11 +237,11 @@ class TestAberrations(unittest.TestCase):
             self.assertIsInstance(im, np.ndarray)
             self.assertEqual(im.shape, (64, 48, 1))
 
-        aberrated_particle.store_properties(True)
-        for z in (-100, 0, 100):
-            im = aberrated_particle.resolve(z=z)
-            self.assertIsInstance(im, Image)
-            self.assertEqual(im.shape, (64, 48, 1))
+        # aberrated_particle.store_properties(True)
+        # for z in (-100, 0, 100):
+        #     im = aberrated_particle.resolve(z=z)
+        #     self.assertIsInstance(im, Image)
+        #     self.assertEqual(im.shape, (64, 48, 1))
 
     def testHorizontalComa(self):
         aberrated_optics = Fluorescence(
@@ -258,11 +259,11 @@ class TestAberrations(unittest.TestCase):
             self.assertIsInstance(im, np.ndarray)
             self.assertEqual(im.shape, (64, 48, 1))
 
-        aberrated_particle.store_properties(True)
-        for z in (-100, 0, 100):
-            im = aberrated_particle.resolve(z=z)
-            self.assertIsInstance(im, Image)
-            self.assertEqual(im.shape, (64, 48, 1))
+        # aberrated_particle.store_properties(True)
+        # for z in (-100, 0, 100):
+        #     im = aberrated_particle.resolve(z=z)
+        #     self.assertIsInstance(im, Image)
+        #     self.assertEqual(im.shape, (64, 48, 1))
 
     def testTrefoil(self):
         aberrated_optics = Fluorescence(
@@ -280,11 +281,11 @@ class TestAberrations(unittest.TestCase):
             self.assertIsInstance(im, np.ndarray)
             self.assertEqual(im.shape, (64, 48, 1))
 
-        aberrated_particle.store_properties(True)
-        for z in (-100, 0, 100):
-            im = aberrated_particle.resolve(z=z)
-            self.assertIsInstance(im, Image)
-            self.assertEqual(im.shape, (64, 48, 1))
+        # aberrated_particle.store_properties(True)
+        # for z in (-100, 0, 100):
+        #     im = aberrated_particle.resolve(z=z)
+        #     self.assertIsInstance(im, Image)
+        #     self.assertEqual(im.shape, (64, 48, 1))
 
     def testSphericalAberration(self):
         aberrated_optics = Fluorescence(
@@ -302,12 +303,16 @@ class TestAberrations(unittest.TestCase):
             self.assertIsInstance(im, np.ndarray)
             self.assertEqual(im.shape, (64, 48, 1))
 
-        aberrated_particle.store_properties(True)
-        for z in (-100, 0, 100):
-            im = aberrated_particle.resolve(z=z)
-            self.assertIsInstance(im, Image)
-            self.assertEqual(im.shape, (64, 48, 1))
+        # aberrated_particle.store_properties(True)
+        # for z in (-100, 0, 100):
+        #     im = aberrated_particle.resolve(z=z)
+        #     self.assertIsInstance(im, Image)
+        #     self.assertEqual(im.shape, (64, 48, 1))
 
+
+@unittest.skipUnless(TORCH_AVAILABLE, "PyTorch is not installed.")
+class TestAberrations_PyTorch(TestAberrations_NumPy):
+    BACKEND = "torch"
 
 if __name__ == "__main__":
     unittest.main()
