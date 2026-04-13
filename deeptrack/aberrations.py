@@ -77,14 +77,20 @@ Applying Gaussian Apodization
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import numpy as np
 
+from deeptrack.backend import TORCH_AVAILABLE, xp
 from deeptrack.features import Feature
 from deeptrack.types import PropertyLike
 from deeptrack.utils import as_list
 
+if TORCH_AVAILABLE:
+    import torch
+
+if TYPE_CHECKING:
+    import torch
 
 #TODO ***??*** revise Aberration - torch, docstring, unit test
 class Aberration(Feature):
@@ -114,13 +120,14 @@ class Aberration(Feature):
         superclass method for further processing.
 
     """
+
     __distributed__: bool = True
 
     def _process_and_get(
         self: Feature,
-        image_list: list[np.ndarray],
+        image_list: list[np.ndarray] | list[torch.Tensor],
         **kwargs: dict[str, np.ndarray]
-    ) -> list[np.ndarray]:
+    ) -> list[np.ndarray] | list[torch.Tensor]:
         """Computes pupil coordinates.
         
         Computes pupil coordinates (rho and theta) for each input image and 
@@ -128,7 +135,7 @@ class Aberration(Feature):
 
         Parameters
         ----------
-        image_list: list[np.ndarray]
+        image_list: list[np.ndarray] or list[torch.Tensor]
             A list of 2D input images to be processed.
         **kwargs: dict[str, np.ndarray]
             Additional parameters to be passed to the superclass's 
@@ -136,19 +143,19 @@ class Aberration(Feature):
 
         Returns
         -------
-        list: list[np.ndarray]
+        list: list[np.ndarray] or list[torch.Tensor]
             A list of processed images with added pupil coordinates.
 
         """
 
         new_list = []
         for image in image_list:
-            x = np.arange(image.shape[0]) - image.shape[0] / 2
-            y = np.arange(image.shape[1]) - image.shape[1] / 2
-            X, Y = np.meshgrid(y, x)
-            rho = np.sqrt(X ** 2 + Y ** 2)
-            rho /= np.max(rho[image != 0])
-            theta = np.arctan2(Y, X)
+            x = xp.arange(image.shape[0]) - image.shape[0] / 2
+            y = xp.arange(image.shape[1]) - image.shape[1] / 2
+            X, Y = xp.meshgrid(y, x)
+            rho = xp.sqrt(X ** 2 + Y ** 2)
+            rho /= xp.max(rho[image != 0])
+            theta = xp.arctan2(Y, X)
 
             new_list += super()._process_and_get(
                 [image], rho=rho, theta=theta, **kwargs
@@ -223,12 +230,12 @@ class GaussianApodization(Aberration):
 
     def get(
         self: GaussianApodization, 
-        pupil: np.ndarray, 
+        pupil: np.ndarray | torch.Tensor, 
         offset: tuple[float, float], 
         sigma: float, 
         rho: np.ndarray, 
         **kwargs: dict[str, Any]
-    ) -> np.ndarray:
+    ) -> np.ndarray | torch.Tensor:
         """Applies Gaussian apodization to the input pupil function.
 
         This method attenuates the amplitude of the pupil function based 
@@ -237,7 +244,7 @@ class GaussianApodization(Aberration):
         
         Parameters
         ----------
-        pupil: np.ndarray
+        pupil: np.ndarray | torch.Tensor
             A 2D array representing the input pupil function.
         offset: tuple of float
             Specifies the (x, y) offset of the Gaussian center relative 
@@ -256,7 +263,7 @@ class GaussianApodization(Aberration):
 
         Returns
         -------
-        np.ndarray
+        np.ndarray | torch.Tensor
             The modified pupil function after applying Gaussian apodization.
 
         Examples
@@ -291,14 +298,14 @@ class GaussianApodization(Aberration):
         """
 
         if offset != (0, 0):
-            x = np.arange(pupil.shape[0]) - pupil.shape[0] / 2 - offset[0]
-            y = np.arange(pupil.shape[1]) - pupil.shape[1] / 2 - offset[1]
-            X, Y = np.meshgrid(x, y)
-            rho = np.sqrt(X ** 2 + Y ** 2)
-            rho /= np.max(rho[pupil != 0])
-            rho[rho > 1] = np.inf
+            x = xp.arange(pupil.shape[0]) - pupil.shape[0] / 2 - offset[0]
+            y = xp.arange(pupil.shape[1]) - pupil.shape[1] / 2 - offset[1]
+            X, Y = xp.meshgrid(x, y)
+            rho = xp.sqrt(X ** 2 + Y ** 2)
+            rho /= xp.max(rho[pupil != 0])
+            rho[rho > 1] = xp.inf
 
-        pupil = pupil * np.exp(-((rho / sigma) ** 2))
+        pupil = pupil * xp.exp(-((rho / sigma) ** 2))
         return pupil
 
 
@@ -399,14 +406,14 @@ class Zernike(Aberration):
 
     def get(
         self: Zernike,
-        pupil: np.ndarray,
-        rho: np.ndarray,
-        theta: np.ndarray,
+        pupil: np.ndarray | torch.Tensor,
+        rho: np.ndarray | torch.Tensor,
+        theta: np.ndarray | torch.Tensor,
         n: int | list[int],
         m: int | list[int],
         coefficient: float | list[float],
         **kwargs: Any,
-    ) -> np.ndarray:
+    ) -> np.ndarray | torch.Tensor:
         """Applies the Zernike phase aberration to the input pupil function.
 
         The method calculates Zernike polynomials for the specified indices `n`
@@ -416,13 +423,13 @@ class Zernike(Aberration):
 
         Parameters
         ----------
-        pupil: np.ndarray
+        pupil: np.ndarray | torch.Tensor
             A 2D array representing the input pupil function. The values should 
             represent the amplitude and phase across the aperture.
-        rho: np.ndarray
+        rho: np.ndarray | torch.Tensor
             A 2D array of radial coordinates normalized to the pupil aperture. 
             The values should range from 0 to 1 within the aperture.
-        theta: np.ndarray
+        theta: np.ndarray | torch.Tensor
             A 2D array of angular coordinates in radians. These define the 
             azimuthal positions for the pupil.
         n: int or list of ints
@@ -438,7 +445,7 @@ class Zernike(Aberration):
 
         Returns
         -------
-        np.ndarray
+        np.ndarray | torch.Tensor
             The modified pupil function with the applied Zernike phase 
             aberration.
 
@@ -516,15 +523,15 @@ class Zernike(Aberration):
                 )
 
             if m > 0:
-                R = R * np.cos(m * theta) * (np.sqrt(2 * n + 2) * coefficient)
+                R = R * xp.cos(m * theta) * (xp.sqrt(2 * n + 2) * coefficient)
             elif m < 0:
-                R = R * np.sin(-m * theta) * (np.sqrt(2 * n + 2) * coefficient)
+                R = R * xp.sin(-m * theta) * (xp.sqrt(2 * n + 2) * coefficient)
             else:
-                R = R * (np.sqrt(n + 1) * coefficient)
+                R = R * (xp.sqrt(n + 1) * coefficient)
 
             Z += R
 
-        phase = np.exp(1j * Z)
+        phase = xp.exp(1j * Z)
 
         pupil[pupil_bool] *= phase
 
