@@ -523,11 +523,11 @@ class Zernike(Aberration):
                 )
 
             if m > 0:
-                R = R * xp.cos(m * theta) * (xp.sqrt(2 * n + 2) * coefficient)
+                R = R * xp.cos(m * theta) * (math.sqrt(2 * n + 2) * coefficient)
             elif m < 0:
-                R = R * xp.sin(-m * theta) * (xp.sqrt(2 * n + 2) * coefficient)
+                R = R * xp.sin(-m * theta) * (math.sqrt(2 * n + 2) * coefficient)
             else:
-                R = R * (xp.sqrt(n + 1) * coefficient)
+                R = R * (math.sqrt(n + 1) * coefficient)
 
             Z += R
 
